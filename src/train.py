@@ -11,6 +11,7 @@ import sacred
 import torch
 import yaml
 from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.tensorboard import SummaryWriter
 
 import trackformer.util.misc as utils
 from trackformer.datasets import build_dataset
@@ -37,7 +38,7 @@ ex.add_named_config('multi_frame', 'cfgs/train_multi_frame.yaml')
 
 def train(args: Namespace) -> None:
     print(args)
-
+    writer = SummaryWriter(f'runs/{args.name}')
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
@@ -264,7 +265,7 @@ def train(args: Namespace) -> None:
                     visualizers[k][k_inner].win = checkpoint['vis_win_names'][k][k_inner]
 
     if args.eval_only:
-        _, coco_evaluator = evaluate(
+        _, coco_evaluator, _ = evaluate(
             model, criterion, postprocessors, data_loader_val, device,
             output_dir, visualizers['val'], args, 0)
         if args.output_dir:
@@ -278,7 +279,7 @@ def train(args: Namespace) -> None:
         # TRAIN
         if args.distributed:
             sampler_train.set_epoch(epoch)
-        train_one_epoch(
+        train_stats = train_one_epoch(
             model, criterion, postprocessors, data_loader_train, optimizer, device, epoch,
             visualizers['train'], args)
 
@@ -296,7 +297,7 @@ def train(args: Namespace) -> None:
 
         # VAL
         if epoch == 1 or not epoch % args.val_interval:
-            val_stats, _ = evaluate(
+            val_stats, _, all_stats = evaluate(
                 model, criterion, postprocessors, data_loader_val, device,
                 output_dir, visualizers['val'], args, epoch)
 
@@ -320,6 +321,19 @@ def train(args: Namespace) -> None:
             for b_s, s, n in zip(best_val_stats, val_stats, stat_names):
                 if b_s == s:
                     checkpoint_paths.append(output_dir / f"checkpoint_best_{n}.pth")
+        if utils.is_main_process():
+            for k, v in train_stats.items():
+                writer.add_scalar(f'{k}/train', v, epoch)
+            for k, v in all_stats.items():
+                if 'coco' in k:
+                    writer.add_scalar(f'mAP/val', v[0], epoch)
+                    writer.add_scalar(f'AP@0.50/val', v[1], epoch)
+                    writer.add_scalar(f'AP@0.75/val', v[2], epoch)
+                elif 'track_bbox' in k:
+                    writer.add_scalar(f'mota/val', v[0], epoch)
+                    writer.add_scalar(f'idf1/val', v[1], epoch)
+                else:
+                    writer.add_scalar(f'{k}/val', v, epoch)
 
         # MODEL SAVING
         if args.output_dir:

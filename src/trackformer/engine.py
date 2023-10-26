@@ -354,4 +354,4 @@ def evaluate(model, criterion, postprocessors, data_loader, device,
     if args.debug:
         exit()
 
-    return eval_stats, coco_evaluator
+    return eval_stats, coco_evaluator, stats
