@@ -24,7 +24,7 @@ class AntSequence(Dataset):
     This dataloader is designed so that it can handle only one sequence,
     if more have to be handled one should inherit from this class.
     """
-    data_folder = 'tracking_real_world_exp'
+    data_folder = 'tracking_real_world_exp_v2'
 
     def __init__(self, root_dir: str = 'data', seq_name: Optional[str] = None,
                  vis_threshold: float = 0.0, img_transform: Namespace = None) -> None:
