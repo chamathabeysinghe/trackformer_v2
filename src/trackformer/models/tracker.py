@@ -238,7 +238,8 @@ class Tracker:
                 track.count_inactive = 0
                 track.pos = new_det_boxes[col_ind]
                 track.score = new_det_scores[col_ind]
-                track.hs_embed.append(new_det_hs_embeds[col_ind])
+                track.hs_embed = [new_det_hs_embeds[col_ind]]
+                # track.hs_embed.append(new_det_hs_embeds[col_ind])
                 track.reset_last_pos()
 
                 if new_det_masks is not None:
@@ -345,7 +346,8 @@ class Tracker:
             for i, track in enumerate(self.tracks):
                 if track_keep[i]:
                     track.score = track_scores[i]
-                    track.hs_embed.append(hs_embeds[i])
+                    track.hs_embed = [hs_embeds[i]]
+                    # track.hs_embed.append(hs_embeds[i])
                     track.pos = track_boxes[i]
                     track.count_termination = 0
 
@@ -366,7 +368,8 @@ class Tracker:
             for i, track in enumerate(self.inactive_tracks, start=len(self.tracks)):
                 if track_keep[i]:
                     track.score = track_scores[i]
-                    track.hs_embed.append(hs_embeds[i])
+                    track.hs_embed = [hs_embeds[i]]
+                    # track.hs_embed.append(hs_embeds[i])
                     track.pos = track_boxes[i]
 
                     if 'masks' in result:
